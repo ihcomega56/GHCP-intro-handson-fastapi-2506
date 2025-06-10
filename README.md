@@ -98,9 +98,7 @@ curl -X POST http://localhost:8000/sample
 
 ### レシート登録（JSONデータ）
 ```bash
-curl -X POST http://localhost:8000/ \
-  -H "Content-Type: application/json" \
-  -d '[{"date": "2023-04-01", "category": "食費", "description": "スーパー", "amount": "2500"}]'
+curl -X POST http://localhost:8000/ -H "Content-Type: application/json" -d "[{\"date\": \"2023-04-01\", \"category\": \"食費\", \"description\": \"スーパー\", \"amount\": \"2500\"}]"
 ```
 
 ### データ一覧取得
