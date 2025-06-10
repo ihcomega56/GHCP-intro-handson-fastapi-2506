@@ -49,7 +49,15 @@ source venv/bin/activate  # 仮想環境に入ると、プロンプト前に (ve
 
 # Windowsの場合
 python -m venv venv
+
+# PowerShellの場合（セキュリティポリシーがスクリプト実行を制限している場合）
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process; .\venv\Scripts\Activate.ps1   # 仮想環境に入ると、プロンプト前に (venv) が付きます
+
+# または通常の方法（エラーが出なければこちらでOK）
 .\venv\Scripts\activate   # 仮想環境に入ると、プロンプト前に (venv) が付きます
+
+# 仮想環境から抜けるには
+deactivate   # 仮想環境から抜けると、プロンプト前の (venv) が消えます
 
 # 依存関係のインストール
 pip install -r requirements.txt
