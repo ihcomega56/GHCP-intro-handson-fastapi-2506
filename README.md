@@ -11,18 +11,19 @@
 
 ### Python環境のセットアップ
 
-#### Windows
+#### Windows (Powershell)
 
-1. [Python公式サイト](https://www.python.org/downloads/)から最新バージョン（3.12以上推奨）をダウンロード
-2. インストーラを起動し **★ 必ず `Add Python to PATH` にチェック** → **Install Now**
-3. インストール完了後、コマンドプロンプトかPowerShellを開き、以下のコマンドでPython 3.12.x がインストールされたことを確認
+1. Powershellで `python --version` と入力するとPythonインストール画面が立ち上がるのでそこからインストール
+    - または[Python公式サイト](https://www.python.org/downloads/)から最新バージョン（3.12以上推奨）をダウンロード → インストーラを起動し **★ 必ず `Add Python to PATH` にチェック** → **Install Now**
+
+1. インストール完了後、PowerShell（またはコマンドプロンプト）にて以下のコマンドでPython 3.12.x がインストールされたことを確認
    ```
    python --version
    ```
 
 > **注意**: Windowsでは通常 `python` コマンドでPython 3系が実行されます。これは一般的にWindowsにはPython 2系が標準でインストールされていないためです。
 
-#### macOS
+#### macOS, Linux (WSL2)
 
 ```bash
 # Homebrewがインストールされていない場合
@@ -43,32 +44,32 @@ python3 --version   # → Python 3.12.x
 
 ```bash
 # 仮想環境の作成と有効化
-# macOSとLinuxの場合
-python3 -m venv venv
-source venv/bin/activate  # 仮想環境に入ると、プロンプト前に (venv) が付きます
 
-# Windowsの場合
+# Windows
 python -m venv venv
+.\venv\Scripts\activate
 
-# PowerShellの場合（セキュリティポリシーがスクリプト実行を制限している場合）
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process; .\venv\Scripts\Activate.ps1   # 仮想環境に入ると、プロンプト前に (venv) が付きます
+# `Activate.ps1 cannot be loaded because running scripts is disabled on this system` エラーが出たら（セキュリティポリシーがスクリプト実行を制限している場合）
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process; .\venv\Scripts\Activate.ps1
 
-# または通常の方法（エラーが出なければこちらでOK）
-.\venv\Scripts\activate   # 仮想環境に入ると、プロンプト前に (venv) が付きます
+# macOS, Linux
+python3 -m venv venv
+source venv/bin/activate
 
-# 仮想環境から抜けるには
-deactivate   # 仮想環境から抜けると、プロンプト前の (venv) が消えます
+# どの環境でも、仮想環境に入っている間はプロンプト前に (venv) が付きます
 
-# 依存関係のインストール
+# Windows
+pip install -r .\requirements.txt
+
+#macOS, Linux
 pip install -r requirements.txt
 
 # アプリケーションの起動
 uvicorn app.main:app --reload --port 8000
-
-# サンプルデータの追加
-# ブラウザで http://localhost:8000/sample にアクセス
-# または curl http://localhost:8000/sample
 ```
+
+- 立ち上がったら、ブラウザまたはターミナルで `http://localhost:8000` にアクセスする
+- 仮想環境から抜けるには `deactivate` コマンドを実行する
 
 #### Dev Containerを使用する場合
 
@@ -79,12 +80,15 @@ uvicorn app.main:app --reload --port 8000
 
 ## 動作確認用curlコマンド
 
-サーバー起動後、以下のコマンドでAPIの動作確認ができます。
-**注意**: 演習用に複数のエンドポイントが同じURLパスに登録されているため、一部の操作が競合して正しく動作しない場合があります。これはあえて「リファクタリングすべき問題」として残されています。
+サーバー起動後、以下のコマンドでAPIの動作確認ができます。Windows PowerShellの場合は `curl.exe` と実行してください。
+**注意**: 演習用に複数エンドポイントが同じURLパスに登録されているため、一部の操作が競合して正しく動作しません。これはあえて「リファクタリングすべき問題」として残されています。
 
 ### ヘルスチェック
 ```bash
 curl http://localhost:8000/healthz
+
+# Windowsの場合（他も同様）
+curl.exe http://localhost:8000/healthz
 ```
 
 ### サンプルデータの追加
