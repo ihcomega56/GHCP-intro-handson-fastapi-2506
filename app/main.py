@@ -89,32 +89,6 @@ async def create_entries_csv(file: UploadFile = File(...)):
     return await create_entries(payload)
 
 @app.get("/entries")
-async def export_entries_csv(
-    date_from: Optional[str] = Query(None),
-    date_to: Optional[str] = Query(None),
-    category: Optional[str] = Query(None),
-):
-    filtered = DATA
-    if date_from:
-        filtered = [e for e in filtered if e["date"] >= date_from]
-    if date_to:
-        filtered = [e for e in filtered if e["date"] <= date_to]
-    if category:
-        filtered = [e for e in filtered if e["category"] == category]
-
-    output = StringIO()
-    writer = csv.DictWriter(output, fieldnames=["id", "date", "category", "description", "amount"])
-    writer.writeheader()
-    writer.writerows(filtered)
-
-    filename = f"entries_{datetime.now().strftime('%Y%m%d%H%M%S')}.csv"
-    return StreamingResponse(
-        iter([output.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
-    )
-
-@app.get("/entries")
 async def filter_entries(
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),
@@ -162,6 +136,32 @@ async def filter_entries(
         "categories": cats,
         "entries": results,
     }
+
+@app.get("/entries")
+async def export_entries_csv(
+    date_from: Optional[str] = Query(None),
+    date_to: Optional[str] = Query(None),
+    category: Optional[str] = Query(None),
+):
+    filtered = DATA
+    if date_from:
+        filtered = [e for e in filtered if e["date"] >= date_from]
+    if date_to:
+        filtered = [e for e in filtered if e["date"] <= date_to]
+    if category:
+        filtered = [e for e in filtered if e["category"] == category]
+
+    output = StringIO()
+    writer = csv.DictWriter(output, fieldnames=["id", "date", "category", "description", "amount"])
+    writer.writeheader()
+    writer.writerows(filtered)
+
+    filename = f"entries_{datetime.now().strftime('%Y%m%d%H%M%S')}.csv"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 @app.get("/summary/{year_month}")
 async def get_summary(year_month: str):
