@@ -9,11 +9,11 @@
 
 ## ローカル環境での実行手順
 
-### Python環境のセットアップ
+### Python環境のセットアップ ※Python 3系インストール済みの場合は不要
 
 #### Windows (PowerShell)
 
-1. PowerShellで `python --version` と入力するとPythonインストール画面が立ち上がるのでそこからインストール
+1. PowerShellで `python` と入力するとPythonインストール画面が立ち上がるのでそこからインストール
     - または[Python公式サイト](https://www.python.org/downloads/)から最新バージョン（3.12以上推奨）をダウンロード → インストーラを起動し **★ 必ず `Add Python to PATH` にチェック** → **Install Now**
 
 1. インストール完了後、PowerShell（またはコマンドプロンプト）にて以下のコマンドでPython 3.12.x がインストールされたことを確認
