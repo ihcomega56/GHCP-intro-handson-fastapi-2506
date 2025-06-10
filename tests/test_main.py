@@ -88,6 +88,48 @@ def test_filter_entries(client):
             assert entry["category"] == "食費"
 
 
+def test_filter_entries_enhanced(client):
+    """改善されたfilter_entries機能の詳細テスト"""
+    # テスト用データを追加
+    test_entries = [
+        {"date": "2023-04-01", "category": "食費", "description": "スーパー", "amount": "1500"},
+        {"date": "2023-04-02", "category": "交通費", "description": "電車", "amount": "300"},
+        {"date": "2023-04-03", "category": "食費", "description": "コンビニ", "amount": "800"},
+        {"date": "2023-04-04", "category": "食費", "description": "レストラン", "amount": "2500"},
+    ]
+    client.post("/entries", json=test_entries)
+    
+    # すべてのエントリを取得
+    response = client.get("/entries")
+    assert response.status_code == 200
+    data = response.json()
+    
+    # レスポンス構造の確認
+    assert "total" in data
+    assert "total_amount" in data
+    assert "categories" in data
+    assert "entries" in data
+    assert isinstance(data["total"], int)
+    assert isinstance(data["total_amount"], str)
+    assert isinstance(data["categories"], dict)
+    assert isinstance(data["entries"], list)
+    
+    # 日付フィルタのテスト
+    response = client.get("/entries?date_from=2023-04-02&date_to=2023-04-03")
+    assert response.status_code == 200
+    filtered_data = response.json()
+    assert filtered_data["total"] == 2  # 2件のエントリ
+    
+    # カテゴリ別集計の確認
+    assert "食費" in filtered_data["categories"]
+    assert "交通費" in filtered_data["categories"]
+    
+    # 無効な日付フォーマットのテスト
+    response = client.get("/entries?date_from=invalid-date")
+    assert response.status_code == 400
+    assert "YYYY-MM-DD format" in response.json()["detail"]
+
+
 def test_sample_data(client):
     """サンプルデータ投入機能のテスト"""
     response = client.post("/sample")
