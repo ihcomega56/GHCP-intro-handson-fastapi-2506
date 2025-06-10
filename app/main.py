@@ -2,18 +2,47 @@ import json
 import os
 import uuid
 import csv
+import re
 from datetime import datetime
 from io import StringIO
 from typing import Optional, List, Dict, Any
 
 from fastapi import FastAPI, HTTPException, Query, UploadFile, File
 from fastapi.responses import JSONResponse, StreamingResponse, RedirectResponse
+from pydantic import BaseModel, Field, field_validator
 
 app = FastAPI(
     title="Chaos Kakeibo API",
     description="家計簿データを管理する API",
     version="0.1.0",
 )
+
+# ----------------------------------------------------------------------------
+# Pydantic Models for Type Safety
+# ----------------------------------------------------------------------------
+
+class Entry(BaseModel):
+    id: Optional[str] = None
+    date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
+    category: Optional[str] = "未分類"
+    description: Optional[str] = ""
+    amount: float
+
+    @field_validator('amount', mode='before')
+    @classmethod
+    def validate_amount(cls, v):
+        if v is None or v == "":
+            return 0.0
+        try:
+            return float(v)
+        except (ValueError, TypeError):
+            raise ValueError("amount must be a valid number")
+
+class EntrySummary(BaseModel):
+    total: int
+    total_amount: str  # Keep as string for backward compatibility
+    categories: Dict[str, float]
+    entries: List[Dict[str, Any]]  # Keep original format for backward compatibility
 
 # ----------------------------------------------------------------------------
 # 疑似データベース（グローバル変数）
@@ -88,54 +117,67 @@ async def create_entries_csv(file: UploadFile = File(...)):
     payload = [row for row in reader]
     return await create_entries(payload)
 
-@app.get("/entries")
+@app.get("/entries", response_model=EntrySummary)
 async def filter_entries(
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
 ):
-    results: List[Dict[str, Any]] = []
+    """Filter entries with improved type safety and validation."""
+    # Validate date parameters if provided
+    if date_from and not _is_valid_date_format(date_from):
+        raise HTTPException(400, "date_from must be in YYYY-MM-DD format")
+    if date_to and not _is_valid_date_format(date_to):
+        raise HTTPException(400, "date_to must be in YYYY-MM-DD format")
 
+    # Filter entries based on criteria
+    filtered_entries = []
     for entry in DATA:
-        # 日付下限フィルタ
-        if date_from:
-            if entry["date"] < date_from:
-                continue
-        # 日付上限フィルタ
-        if date_to:
-            if entry["date"] > date_to:
-                continue
-        # カテゴリフィルタ
-        if category:
-            if entry["category"] != category:
-                continue
-        results.append(entry)
+        # Date range filters
+        if date_from and entry.get("date", "") < date_from:
+            continue
+        if date_to and entry.get("date", "") > date_to:
+            continue
+        # Category filter
+        if category and entry.get("category") != category:
+            continue
+        filtered_entries.append(entry)
 
-    # 合計金額
+    # Calculate total amount with proper error handling
     total_amount = 0.0
-    idx = 0
-    while idx < len(results):
+    for entry in filtered_entries:
         try:
-            total_amount += float(results[idx].get("amount", 0) or 0)
-        except Exception:
-            pass
-        idx += 1
+            amount_value = entry.get("amount", 0)
+            if amount_value is not None and amount_value != "":
+                total_amount += float(amount_value)
+        except (ValueError, TypeError):
+            # Skip invalid amounts but continue processing
+            continue
 
-    # カテゴリ別集計
-    cats: Dict[str, float] = {}
-    for r in results:
-        cat = r.get("category", "未分類")
+    # Calculate category aggregation
+    categories: Dict[str, float] = {}
+    for entry in filtered_entries:
+        cat = entry.get("category", "未分類")
         try:
-            cats[cat] = cats.get(cat, 0.0) + float(r.get("amount", 0) or 0)
-        except Exception:
-            pass
+            amount_value = entry.get("amount", 0)
+            if amount_value is not None and amount_value != "":
+                amount = float(amount_value)
+                categories[cat] = categories.get(cat, 0.0) + amount
+        except (ValueError, TypeError):
+            # Skip invalid amounts but continue processing
+            continue
 
-    return {
-        "total": len(results),
-        "total_amount": str(total_amount),
-        "categories": cats,
-        "entries": results,
-    }
+    return EntrySummary(
+        total=len(filtered_entries),
+        total_amount=str(total_amount),
+        categories=categories,
+        entries=filtered_entries,
+    )
+
+
+def _is_valid_date_format(date_str: str) -> bool:
+    """Check if date string is in YYYY-MM-DD format."""
+    return bool(re.match(r"^\d{4}-\d{2}-\d{2}$", date_str))
 
 @app.get("/entries")
 async def export_entries_csv(
@@ -217,15 +259,28 @@ async def seed_sample():
     return {"status": "success", "added": len(examples), "total": len(DATA)}
 
 # サンプルデータを削除するエンドポイント
-@app.post("/clear_data", tags=["maintenance"], description="全てのデータを削除します。この操作は取り消せません。")
-async def clear_data(confirm: bool = Query(False, description="この操作を確認するには、confirmパラメータをtrueに設定してください")):
+@app.post(
+    "/clear_data",
+    tags=["maintenance"],
+    description="全てのデータを削除します。この操作は取り消せません。"
+)
+async def clear_data(
+    confirm: bool = Query(
+        False,
+        description="この操作を確認するには、confirmパラメータをtrueに設定してください"
+    )
+):
     global DATA
     if not confirm:
         return {"status": "error", "message": "確認が必要です。?confirm=true を追加してください。"}
-    
+
     previous_count = len(DATA)
     DATA.clear()
-    return {"status": "success", "cleared": previous_count, "message": f"{previous_count}件のデータを削除しました"}
+    return {
+        "status": "success",
+        "cleared": previous_count,
+        "message": f"{previous_count}件のデータを削除しました"
+    }
 
 # ----------------------------------------------------------------------------
 # グローバル例外ハンドラ
