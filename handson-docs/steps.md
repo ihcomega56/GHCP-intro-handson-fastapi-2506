@@ -19,7 +19,7 @@
 ### ドキュメントを出力し、理解に役立てる
 
 1. Copilot Chat で OpenAPI ドキュメントを出力してみましょう。（※FastAPIには自動生成の仕組みが備わっていますが、演習として実施します）
-    - 💬 `#file:'Program.cs' からOpenAPIドキュメントを出力してください。`
+    - 💬 `#file:'main.app' からOpenAPIドキュメントを出力してください。`
 1. 出力したドキュメントを https://editor.swagger.io/ で確認します。
 1. Copilot Chat で Mermaid記法を使ったドキュメントを出力してみましょう。
     - 💬 `Mermaid記法で #file:main.py のシーケンス図を描いてください。` 
